@@ -1,4 +1,4 @@
-package com.vnukala.product_service;
+package com.vnukala.productservice;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
