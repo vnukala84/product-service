@@ -8,12 +8,6 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
-            steps {
-                git 'https://github.com/vnukala84/product-service.git'
-            }
-        }
-
         stage('Build') {
             steps {
                 sh 'mvn clean install'
