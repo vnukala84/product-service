@@ -45,7 +45,7 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'git-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
                     sh '''
                     rm -rf manifests-repo
-                    git clone https://$USER:$PASS@github.com/<your-username>/product-service-manifests.git manifests-repo
+                    git clone -b master https://github.com/vnukala84/product-service-manifests.git 
 
                     cd manifests-repo/k8s
 
