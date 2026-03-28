@@ -9,6 +9,7 @@ pipeline {
     environment {
         DOCKER_IMAGE = "venkat8430/product-service"
         IMAGE_TAG = "${env.BUILD_NUMBER}"
+        GIT_REPO = "https://github.com/<your-username>/product-service-manifests.git"
     }
 
     stages {
@@ -39,18 +40,24 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Update Manifest Repo') {
             steps {
-                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                withCredentials([usernamePassword(credentialsId: 'git-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
                     sh '''
-                    export KUBECONFIG=$KUBECONFIG
+                    rm -rf manifests-repo
+                    git clone https://$USER:$PASS@github.com/<your-username>/product-service-manifests.git manifests-repo
 
-                    # Update image in deployment (NO downtime rollout)
-                    kubectl set image deployment/product-service \
-                    product-service=$DOCKER_IMAGE:$IMAGE_TAG
+                    cd manifests-repo/k8s
 
-                    # Wait for rollout
-                    kubectl rollout status deployment/product-service
+                    # Update image tag
+                    sed -i "s|image: .*|image: venkat8430/product-service:${BUILD_NUMBER}|" deployment.yaml
+
+                    git config user.name "jenkins"
+                    git config user.email "jenkins@example.com"
+
+                    git add .
+                    git commit -m "Update image to ${BUILD_NUMBER}"
+                    git push
                     '''
                 }
             }
@@ -59,7 +66,7 @@ pipeline {
 
     post {
         success {
-            echo "✅ Deployment successful! Image: $DOCKER_IMAGE:$IMAGE_TAG"
+            echo "✅ Image updated and pushed to Git. ArgoCD will deploy automatically."
         }
         failure {
             echo "❌ Pipeline failed"
