@@ -2,11 +2,9 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "venkat8430/product-service"
+        IMAGE_NAME   = "venkat8430/product-service"
         MANIFEST_REPO = "git@github.com:vnukala84/product-service-manifests.git"
-        DOCKER_IMAGE = "venkat8430/product-service"
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
-
+        IMAGE_TAG    = "${BUILD_NUMBER}"
     }
 
     tools {
@@ -25,24 +23,34 @@ pipeline {
 
         stage('Build JAR') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                sh '''
+                mvn -version
+                java -version
+                mvn clean package -DskipTests
+                '''
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    dockerImage = docker.build("${IMAGE_NAME}:${BUILD_NUMBER}")
-                }
+                sh '''
+                docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                '''
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-creds') {
-                        dockerImage.push("${BUILD_NUMBER}")
-                    }
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker-hub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                    docker logout
+                    '''
                 }
             }
         }
@@ -52,16 +60,19 @@ pipeline {
                 sshagent(['github-ssh-key']) {
                     sh '''
                     rm -rf manifests-repo
-                    git clone ${MANIFEST_REPO} manifests-repo
 
+                    git clone ${MANIFEST_REPO} manifests-repo
                     cd manifests-repo
 
+                    # Ensure correct branch
+                    git checkout master || git checkout -b master
+
                     # Update image tag
-                    sed -i "s|image: .*|image: ${IMAGE_NAME}:${BUILD_NUMBER}|g" deployment.yaml
+                    sed -i "s|image: .*|image: ${IMAGE_NAME}:${IMAGE_TAG}|g" deployment.yaml
 
                     git add .
-                    git commit -m "Update image to ${BUILD_NUMBER}" || echo "No changes to commit"
-                    git push origin main
+                    git commit -m "Update image to ${IMAGE_TAG}" || echo "No changes to commit"
+                    git push origin master
                     '''
                 }
             }
