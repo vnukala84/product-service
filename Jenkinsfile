@@ -1,64 +1,63 @@
 pipeline {
     agent any
 
-    tools {
-        maven 'Maven3'
-        jdk 'JDK17'
+    environment {
+        IMAGE_NAME = "venkat8430/product-service"
+        MANIFEST_REPO = "git@github.com:vnukala84/product-service-manifests.git"
     }
 
-    environment {
-        DOCKER_IMAGE = "venkat8430/product-service"
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
-        GIT_REPO = "https://github.com/<your-username>/product-service-manifests.git"
+    tools {
+        maven 'Maven'
     }
 
     stages {
 
-        stage('Build') {
+        stage('Checkout Source Code') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/vnukala84/product-service.git'
+            }
+        }
+
+        stage('Build JAR') {
             steps {
                 sh 'mvn clean package -DskipTests'
             }
         }
 
-        stage('Docker Build') {
+        stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $DOCKER_IMAGE:$IMAGE_TAG .'
-            }
-        }
-
-        stage('Docker Login') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-                    sh 'echo $PASS | docker login -u $USER --password-stdin'
+                script {
+                    dockerImage = docker.build("${IMAGE_NAME}:${BUILD_NUMBER}")
                 }
             }
         }
 
-        stage('Docker Push') {
+        stage('Push Docker Image') {
             steps {
-                sh 'docker push $DOCKER_IMAGE:$IMAGE_TAG'
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-creds') {
+                        dockerImage.push("${BUILD_NUMBER}")
+                    }
+                }
             }
         }
 
         stage('Update Manifest Repo') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'git-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                sshagent(['github-ssh-key']) {
                     sh '''
                     rm -rf manifests-repo
-                    git clone -b master https://github.com/vnukala84/product-service-manifests.git manifests-repo 
+                    git clone ${MANIFEST_REPO} manifests-repo
 
-                    cd manifests-repo/k8s
-                    ls -l
+                    cd manifests-repo
 
                     # Update image tag
-                    sed -i "s|image: .*|image: venkat8430/product-service:${BUILD_NUMBER}|" deployment.yaml
-
-                    #git config user.name "jenkins"
-                    #git config user.email "jenkins@example.com"
+                    sed -i "s|image: .*|image: ${IMAGE_NAME}:${BUILD_NUMBER}|g" deployment.yaml
 
                     git add .
-                    git commit -m "Update image to ${BUILD_NUMBER}"
-                    git push
+                    git commit -m "Update image to ${BUILD_NUMBER}" || echo "No changes to commit"
+                    git push origin main
                     '''
                 }
             }
@@ -67,7 +66,7 @@ pipeline {
 
     post {
         success {
-            echo "✅ Image updated and pushed to Git. ArgoCD will deploy automatically."
+            echo "✅ Pipeline completed successfully"
         }
         failure {
             echo "❌ Pipeline failed"
