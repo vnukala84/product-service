@@ -4,6 +4,9 @@ pipeline {
     environment {
         IMAGE_NAME = "venkat8430/product-service"
         MANIFEST_REPO = "git@github.com:vnukala84/product-service-manifests.git"
+        DOCKER_IMAGE = "venkat8430/product-service"
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
+
     }
 
     tools {
