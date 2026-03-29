@@ -45,9 +45,10 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'git-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
                     sh '''
                     rm -rf manifests-repo
-                    git clone -b master https://github.com/vnukala84/product-service-manifests.git 
+                    git clone -b master https://github.com/vnukala84/product-service-manifests.git manifests-repo 
 
                     cd manifests-repo/k8s
+                    ls -l
 
                     # Update image tag
                     sed -i "s|image: .*|image: venkat8430/product-service:${BUILD_NUMBER}|" deployment.yaml
