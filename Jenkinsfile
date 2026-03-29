@@ -1,7 +1,7 @@
 pipeline {
 agent any
 
-```
+
 environment {
     IMAGE_NAME    = "venkat8430/product-service"
     IMAGE_TAG     = "${BUILD_NUMBER}"
@@ -93,7 +93,7 @@ post {
         echo "❌ Pipeline failed"
     }
 }
-```
+
 
 }
 
