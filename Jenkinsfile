@@ -53,8 +53,8 @@ pipeline {
                     # Update image tag
                     sed -i "s|image: .*|image: venkat8430/product-service:${BUILD_NUMBER}|" deployment.yaml
 
-                    git config user.name "jenkins"
-                    git config user.email "jenkins@example.com"
+                    #git config user.name "jenkins"
+                    #git config user.email "jenkins@example.com"
 
                     git add .
                     git commit -m "Update image to ${BUILD_NUMBER}"
