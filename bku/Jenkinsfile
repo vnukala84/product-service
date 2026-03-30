@@ -1,10 +1,10 @@
 pipeline {
 agent any
 
-```
+
 environment {
-    IMAGE_NAME = "venkat8430/product-service"
-    IMAGE_TAG = "${BUILD_NUMBER}"
+    IMAGE_NAME    = "venkat8430/product-service"
+    IMAGE_TAG     = "${BUILD_NUMBER}"
     MANIFEST_REPO = "git@github.com:vnukala84/product-service-manifests.git"
 }
 
@@ -25,8 +25,12 @@ stages {
     stage('Build JAR') {
         steps {
             sh '''
-            mvn -version
+            echo "Java version:"
             java -version
+
+            echo "Maven version:"
+            mvn -version
+
             mvn clean package -DskipTests
             '''
         }
@@ -58,18 +62,9 @@ stages {
 
     stage('Update Manifest Repo') {
         steps {
-            withCredentials([sshUserPrivateKey(
-                credentialsId: 'github-ssh-key',
-                keyFileVariable: 'SSH_KEY'
-            )]) {
+            sshagent(['github-ssh-key']) {
                 sh '''
                 rm -rf manifests-repo
-
-                mkdir -p ~/.ssh
-                cp $SSH_KEY ~/.ssh/id_rsa
-                chmod 600 ~/.ssh/id_rsa
-
-                ssh-keyscan github.com >> ~/.ssh/known_hosts
 
                 git clone ${MANIFEST_REPO} manifests-repo
                 cd manifests-repo
@@ -92,13 +87,13 @@ stages {
 
 post {
     success {
-        echo "Pipeline completed successfully"
+        echo "✅ Pipeline completed successfully"
     }
     failure {
-        echo "Pipeline failed"
+        echo "❌ Pipeline failed"
     }
 }
-```
+
 
 }
 
