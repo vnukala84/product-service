@@ -1,7 +1,7 @@
 pipeline {
 agent any
 
-```
+
 environment {
     IMAGE_NAME = "venkat8430/product-service"
     IMAGE_TAG = "${BUILD_NUMBER}"
@@ -24,19 +24,19 @@ stages {
 
     stage('Build JAR') {
         steps {
-            sh '''
+            sh """
             mvn -version
             java -version
             mvn clean package -DskipTests
-            '''
+            """
         }
     }
 
     stage('Build Docker Image') {
         steps {
-            sh '''
+            sh """
             docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-            '''
+            """
         }
     }
 
@@ -47,11 +47,11 @@ stages {
                 usernameVariable: 'DOCKER_USER',
                 passwordVariable: 'DOCKER_PASS'
             )]) {
-                sh '''
-                echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                sh """
+                echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
                 docker push ${IMAGE_NAME}:${IMAGE_TAG}
                 docker logout
-                '''
+                """
             }
         }
     }
@@ -62,11 +62,11 @@ stages {
                 credentialsId: 'github-ssh-key',
                 keyFileVariable: 'SSH_KEY'
             )]) {
-                sh '''
+                sh """
                 rm -rf manifests-repo
 
                 mkdir -p ~/.ssh
-                cp $SSH_KEY ~/.ssh/id_rsa
+                cp \$SSH_KEY ~/.ssh/id_rsa
                 chmod 600 ~/.ssh/id_rsa
 
                 ssh-keyscan github.com >> ~/.ssh/known_hosts
@@ -84,7 +84,7 @@ stages {
                 git add .
                 git commit -m "Update image to ${IMAGE_TAG}" || echo "No changes to commit"
                 git push origin main
-                '''
+                """
             }
         }
     }
@@ -98,7 +98,7 @@ post {
         echo "Pipeline failed"
     }
 }
-```
+
 
 }
 
