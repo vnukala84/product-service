@@ -59,7 +59,7 @@ stages {
             rm -rf manifests-repo
 
             git clone -b master  ${MANIFEST_REPO} manifests-repo
-            cd manifests-repo
+            cd manifests-repo/k8s
 
             sed -i "s|image: .*|image: ${IMAGE_NAME}:${IMAGE_TAG}|g" deployment.yaml
 
