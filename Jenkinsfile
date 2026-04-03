@@ -58,7 +58,7 @@ stages {
             sh """
             rm -rf manifests-repo
 
-            git clone ${MANIFEST_REPO} manifests-repo
+            git clone -b master  ${MANIFEST_REPO} manifests-repo
             cd manifests-repo
 
             sed -i "s|image: .*|image: ${IMAGE_NAME}:${IMAGE_TAG}|g" deployment.yaml
