@@ -5,7 +5,7 @@ import com.vnukala.productservice.service.ProductService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
+// enkat
 @RestController
 @RequestMapping("/products")
 @CrossOrigin(origins = "http://localhost:3000")
