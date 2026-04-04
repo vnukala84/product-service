@@ -4,7 +4,7 @@ agent any
 environment {
     IMAGE_NAME = "venkat8430/product-service"
     IMAGE_TAG = "${BUILD_NUMBER}"
-    MANIFEST_REPO = "git@github.com:vnukala84/product-service-manifests.git"
+    MANIFEST_REPO = "git@github.com:vnukala84/argo-test.git"
 }
 
 tools {
@@ -58,7 +58,7 @@ stages {
             sh """
             rm -rf manifests-repo
 
-            git clone -b master  ${MANIFEST_REPO} manifests-repo
+            git clone -b main  ${MANIFEST_REPO} manifests-repo
             cd manifests-repo/k8s
 
             sed -i "s|image: .*|image: ${IMAGE_NAME}:${IMAGE_TAG}|g" deployment.yaml
