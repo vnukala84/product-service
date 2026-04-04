@@ -68,7 +68,7 @@ stages {
 
             git add .
             git commit -m "Update image to ${IMAGE_TAG}" || echo "No changes"
-            git push origin main
+            git push 
             """
         }
     }
