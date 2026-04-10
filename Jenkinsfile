@@ -8,7 +8,7 @@ pipeline {
         MANIFEST_BRANCH = "arg-helm-doc-jen"
         HELM_PATH = "helm/product-service"
         GIT_CREDENTIALS_ID = "git-ssh-credentials"
-        DOCKER_CREDENTIALS_ID = "dockerhub-credentials"
+        DOCKER_CREDENTIALS_ID = "docker-hub-creds"
     }
 
     stages {
