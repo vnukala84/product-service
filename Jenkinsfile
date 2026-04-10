@@ -1,57 +1,77 @@
 pipeline {
     agent any
 
-    tools {
-        maven 'Maven3'
-        jdk 'JDK17'
-    }
-
     environment {
         DOCKER_IMAGE = "venkat8430/product-service"
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        DOCKER_TAG   = "${BUILD_NUMBER}"
+        MANIFEST_REPO = "git@github.com:vnukala84/product-service-manifests.git"
+        MANIFEST_BRANCH = "arg-helm-doc-jen"
+        HELM_PATH = "helm/product-service"
+        GIT_CREDENTIALS_ID = "git-ssh-credentials"
+        DOCKER_CREDENTIALS_ID = "dockerhub-credentials"
     }
 
     stages {
 
-        stage('Build') {
+        stage('Checkout Application Code') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                git branch: 'main',
+                    url: 'git@github.com:vnukala84/product-service.git'
             }
         }
 
-        stage('Docker Build') {
+        stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $DOCKER_IMAGE:$IMAGE_TAG .'
-            }
-        }
-
-        stage('Docker Login') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-                    sh 'echo $PASS | docker login -u $USER --password-stdin'
+                script {
+                    sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
                 }
             }
         }
 
-        stage('Docker Push') {
+        stage('Push Docker Image') {
             steps {
-                sh 'docker push $DOCKER_IMAGE:$IMAGE_TAG'
+                script {
+                    withCredentials([usernamePassword(
+                        credentialsId: "${DOCKER_CREDENTIALS_ID}",
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )]) {
+
+                        sh """
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
+                        docker logout
+                        """
+                    }
+                }
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Update Helm Chart in Manifests Repo') {
             steps {
-                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
-                    sh '''
-                    export KUBECONFIG=$KUBECONFIG
+                script {
+                    sh """
+                    rm -rf manifests-repo
 
-                    # Update image in deployment (NO downtime rollout)
-                    kubectl set image deployment/product-service \
-                    product-service=$DOCKER_IMAGE:$IMAGE_TAG
+                    git clone -b ${MANIFEST_BRANCH} ${MANIFEST_REPO} manifests-repo
 
-                    # Wait for rollout
-                    kubectl rollout status deployment/product-service
-                    '''
+                    cd manifests-repo/${HELM_PATH}
+
+                    # Update image tag in values.yaml
+                    sed -i 's/tag:.*/tag: "${DOCKER_TAG}"/g' values.yaml
+
+                    # Optional: update image repository if needed
+                    # sed -i 's|repository:.*|repository: ${DOCKER_IMAGE}|g' values.yaml
+
+                    cd ../../
+
+                    git config user.email "jenkins@demo.com"
+                    git config user.name "Jenkins"
+
+                    git add .
+                    git commit -m "Update image tag to ${DOCKER_TAG}" || echo "No changes to commit"
+                    git push origin ${MANIFEST_BRANCH}
+                    """
                 }
             }
         }
@@ -59,10 +79,11 @@ pipeline {
 
     post {
         success {
-            echo "✅ Deployment successful! Image: $DOCKER_IMAGE:$IMAGE_TAG"
+            echo "✅ Build successful. Argo CD will sync automatically."
         }
         failure {
-            echo "❌ Pipeline failed"
+            echo "❌ Build failed."
         }
     }
 }
+
