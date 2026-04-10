@@ -5,7 +5,7 @@ pipeline {
         DOCKER_IMAGE = "venkat8430/product-service"
         DOCKER_TAG   = "${BUILD_NUMBER}"
         MANIFEST_REPO = "git@github.com:vnukala84/product-service-manifests.git"
-        MANIFEST_BRANCH = "arg-helm-doc-jen"
+        MANIFEST_BRANCH = "helm"
         HELM_PATH = "helm/product-service"
         GIT_CREDENTIALS_ID = "git-ssh-credentials"
         DOCKER_CREDENTIALS_ID = "docker-hub-creds"
